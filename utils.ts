@@ -15,9 +15,11 @@ export const isCoilCompatible = (coil: Coil, mat: Material): string | null => {
     return `牌号不兼容: 钢卷${coil.grade} 无法满足 物料${mat.grade} 的要求`;
   }
   
-  // 2. Coating Check
-  if (coil.coating !== mat.coating) {
-     return `锌层不匹配: 钢卷Z${coil.coating} vs 物料Z${mat.coating}`;
+  // 2. Coating Check (Force number comparison to prevent string/number mismatch)
+  const cCoating = Number(coil.coating);
+  const mCoating = Number(mat.coating);
+  if (cCoating !== mCoating) {
+     return `锌层不匹配: 钢卷Z${cCoating} vs 物料Z${mCoating}`;
   }
 
   // 3. Surface Check
@@ -25,10 +27,14 @@ export const isCoilCompatible = (coil: Coil, mat: Material): string | null => {
     return `表面处理不匹配: 钢卷${coil.surface} vs 物料${mat.surface}`;
   }
   
-  // 4. Thickness Check
-  const thickDiff = Math.abs(coil.thickness - mat.thickness);
-  if (thickDiff > 0.0501) { 
-    return `厚度差异过大: 钢卷${coil.thickness}mm vs 物料${mat.thickness}mm (允许偏差 ±0.05mm)`;
+  // 4. Thickness Check (Strict tolerance)
+  const cThick = Number(coil.thickness);
+  const mThick = Number(mat.thickness);
+  const thickDiff = Math.abs(cThick - mThick);
+  
+  // Allow floating point epsilon but strictly enforce 0.05 limit
+  if (thickDiff > 0.05001) { 
+    return `厚度差异过大: 钢卷${cThick}mm vs 物料${mThick}mm (偏差 ${thickDiff.toFixed(3)}mm > 0.05mm)`;
   }
 
   return null;

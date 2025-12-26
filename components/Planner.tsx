@@ -249,15 +249,20 @@ const Planner: React.FC<Props> = ({ coils, materials, onExecutePlan }) => {
       targetCoil = urgentMatchedCoil;
     }
 
-    // Update filter for NEGATIVE shortage
-    const compatibleMaterials = materials.filter(m => isCoilCompatible(targetCoil!, m) === null && (m.requiredWeight < -0.1 || m.allowOverProduction));
-    const compatibleCount = compatibleMaterials.length;
+    // CRITICAL FIX: Explicitly filter compatible materials BEFORE passing to algorithm.
+    // This ensures we strictly obey the 0.05mm thickness rule.
+    const validMaterials = materials.filter(m => {
+        const isCompat = isCoilCompatible(targetCoil!, m) === null;
+        const needsProd = m.requiredWeight < -0.1 || m.allowOverProduction;
+        return isCompat && needsProd;
+    });
+    const compatibleCount = validMaterials.length;
 
     const plans = generateDeterministicPlan({
       mode: mode === 'STOCK' ? 'stock' : 'urgent',
       targetCoil: targetCoil,
       urgentMaterial: urgentMat,
-      compatibleMaterials: materials
+      compatibleMaterials: validMaterials // Pass ONLY filtered list
     });
 
     if (plans.length === 0) {
